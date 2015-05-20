@@ -39,7 +39,7 @@ package Attean::IDPQueryPlanner 0.004 {
 	use Encode qw(encode);
 	use Attean::RDF;
 	use LWP::UserAgent;
-	use Scalar::Util qw(blessed reftype);
+	use Scalar::Util qw(blessed reftype refaddr);
 	use List::Util qw(all any reduce);
 	use Types::Standard qw(Int ConsumerOf InstanceOf);
 	use URI::Escape;
@@ -518,7 +518,7 @@ sub-plan participating in the join.
 		my $model	= shift;
 		Carp::confess "No valid model given" unless ref($model);
 		use Data::Dumper;
-		
+		my $i =0;
 		if ($plan->has_cost) {
 			return $plan->cost;
 		} else {
@@ -529,14 +529,20 @@ sub-plan participating in the join.
 				}
 			}
 
+			my %hsp_join_candidates;
 			# Implement Heuristic 2 from HSP
 			$plan->walk(prefix => sub {
 								my $p = shift;
 								if ($p->isa('Attean::Plan::Quad')) {
 									my @nodes = $p->values;
-									#die Dumper(\@nodes);
+									$i++;warn $i;
+#									foreach (@nodes) {
+#										$hsp_join_candidates{refaddr($_)}++;
+#									}
+#									warn Dumper(\@nodes);
 								}
-							});
+						});
+#		warn Dumper(\%hsp_join_candidates);
 
 			my $cost	= 1;
 			my @children	= @{ $plan->children };
