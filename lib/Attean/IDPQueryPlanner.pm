@@ -517,6 +517,7 @@ sub-plan participating in the join.
 		my $plan	= shift;
 		my $model	= shift;
 		Carp::confess "No valid model given" unless ref($model);
+		use Data::Dumper;
 		
 		if ($plan->has_cost) {
 			return $plan->cost;
@@ -527,6 +528,15 @@ sub-plan participating in the join.
 					return $cost;
 				}
 			}
+
+			# Implement Heuristic 2 from HSP
+			$plan->walk(prefix => sub {
+								my $p = shift;
+								if ($p->isa('Attean::Plan::Quad')) {
+									my @nodes = $p->values;
+									#die Dumper(\@nodes);
+								}
+							});
 
 			my $cost	= 1;
 			my @children	= @{ $plan->children };

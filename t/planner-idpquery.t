@@ -40,7 +40,7 @@ my $plan	= $planner->plan_for_algebra($algebra, $model, $graph);
 isa_ok($plan, 'Attean::Plan::Project');
 
 my $cost	= $planner->cost_for_plan($plan, $model);
-note ("Query plan (cost: $cost)");
+diag ("Query plan (cost: $cost)");
 #print $plan->as_string;
 
 done_testing;
