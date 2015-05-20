@@ -516,7 +516,7 @@ sub-plan participating in the join.
 		my $self	= shift;
 		my $plan	= shift;
 		my $model	= shift;
-		Carp::confess unless ref($model);
+		Carp::confess "No valid model given" unless ref($model);
 		
 		if ($plan->has_cost) {
 			return $plan->cost;
