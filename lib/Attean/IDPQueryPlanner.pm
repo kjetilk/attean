@@ -552,13 +552,14 @@ sub-plan participating in the join.
 								 && $mynode->equals($othernode)) {
 								# We have found a shared variable, now find the position
 								$hsp_join_candidates{$myref}{other}{'m' . $myp . 'o' . $otherp} = $otherref;
-							} else {
-								# OMG
 							}
 						}
 					}
 				}
 			}
+
+			# TODO: A quad in the hash that doesn't have 'other' but has in_scope_variables are cartesian
+
 			warn Dumper(\%hsp_join_candidates);
 			my $cost	= 1;
 			my @children	= @{ $plan->children };

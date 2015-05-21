@@ -17,7 +17,11 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 SELECT DISTINCT * WHERE {
 	?s a foaf:Person ;
 		foaf:name ?name ;
-		foaf:nick "kasei" .
+		foaf:nick "kasei" ;
+      foaf:made ?pub .
+   ?pub a foaf:Document ;
+        foaf:maker ?s .
+   ?omg foaf:nick "Going nowhere" .
 	FILTER(ISIRI(?s))
 }
 ORDER BY ?name
