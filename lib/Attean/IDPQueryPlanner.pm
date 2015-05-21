@@ -37,7 +37,7 @@ use Attean::Expression;
 package Attean::IDPQueryPlanner 0.004 {
 	use Moo;
 	use Encode qw(encode);
-	use Attean::RDF;
+	use Attean::RDF qw(iri);
 	use LWP::UserAgent;
 	use Scalar::Util qw(blessed reftype refaddr);
 	use List::Util qw(all any reduce);
@@ -534,6 +534,7 @@ sub-plan participating in the join.
 			$plan->walk(prefix => sub {
 								my $p = shift;
 								if ($p->isa('Attean::Plan::Quad')) {
+									warn "Sum for " . $p->as_string . "\t" . $self->_hsp_heuristic_triple_sum($p);
 									$hsp_join_candidates{refaddr($p)} = { thisquad => $p };
 								}
 							});
@@ -560,7 +561,7 @@ sub-plan participating in the join.
 
 			# TODO: A quad in the hash that doesn't have 'other' but has in_scope_variables are cartesian
 
-			warn Dumper(\%hsp_join_candidates);
+			#warn Dumper(\%hsp_join_candidates);
 			my $cost	= 1;
 			my @children	= @{ $plan->children };
 			if ($plan->isa('Attean::Plan::Quad')) {
@@ -605,6 +606,35 @@ sub-plan participating in the join.
 			return $cost;
 		}
 	}
+
+	sub _hsp_heuristic_triple_sum {
+		my ($self, $t) = @_;
+		my @nodes = $t->values;
+		my $sum = 0;
+		if ($nodes[0][0]->does('Attean::API::Variable')) {
+			$sum = 20;
+		} else {
+			$sum = 1;
+		}
+		if ($nodes[0][1]->does('Attean::API::Variable')) {
+			$sum += 10;
+		} else {
+			if ($nodes[0][1]->equals(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))) {
+				$sum += 4;
+			} else {
+				$sum += 2;
+			}
+		}
+		if ($nodes[0][2]->does('Attean::API::Variable')) {
+			$sum += 27;
+		} elsif ($nodes[0][2]->does('Attean::API::Literal')) {
+			$sum += 3;
+		} else {
+			$sum += 5;
+		}
+		return $sum;
+	}
+
 	
 	sub _comparator_referenced_variables {
 		my $self	= shift;
