@@ -534,16 +534,32 @@ sub-plan participating in the join.
 			$plan->walk(prefix => sub {
 								my $p = shift;
 								if ($p->isa('Attean::Plan::Quad')) {
-									my @nodes = $p->values;
-									$i++;warn $i;
-#									foreach (@nodes) {
-#										$hsp_join_candidates{refaddr($_)}++;
-#									}
-#									warn Dumper(\@nodes);
+									$hsp_join_candidates{refaddr($p)} = { thisquad => $p };
 								}
-						});
-#		warn Dumper(\%hsp_join_candidates);
-
+							});
+#			warn Dumper(\%hsp_join_candidates);
+			foreach my $myref (keys(%hsp_join_candidates)) {
+				my @mynodes = $hsp_join_candidates{$myref}{thisquad}->values;
+				foreach my $otherref (keys(%hsp_join_candidates)) {
+					next if ($myref == $otherref);
+					my @othernodes = $hsp_join_candidates{$otherref}{thisquad}->values;
+					for (my $myp = 0; $myp <= 2; $myp++) {
+						for (my $otherp = 0; $otherp <= 2; $otherp++) {
+							my $mynode = $mynodes[0][$myp];
+							my $othernode = $othernodes[0][$otherp];
+							if (blessed($mynode) && $mynode->does('Attean::API::Variable') 
+								 && blessed($othernode) && $othernode->does('Attean::API::Variable') 
+								 && $mynode->equals($othernode)) {
+								# We have found a shared variable, now find the position
+								$hsp_join_candidates{$myref}{other}{'m' . $myp . 'o' . $otherp} = $otherref;
+							} else {
+								# OMG
+							}
+						}
+					}
+				}
+			}
+			warn Dumper(\%hsp_join_candidates);
 			my $cost	= 1;
 			my @children	= @{ $plan->children };
 			if ($plan->isa('Attean::Plan::Quad')) {
