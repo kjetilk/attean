@@ -534,11 +534,14 @@ sub-plan participating in the join.
 			$plan->walk(prefix => sub {
 								my $p = shift;
 								if ($p->isa('Attean::Plan::Quad')) {
-									warn "Sum for " . $p->as_string . "\t" . $self->_hsp_heuristic_triple_sum($p);
-									$hsp_join_candidates{refaddr($p)} = { thisquad => $p };
+									$hsp_join_candidates{refaddr($p)} = {
+																					 thisquad => $p,
+																					 triplesortsum => $self->_hsp_heuristic_triple_sum($p)
+																					};
 								}
 							});
 #			warn Dumper(\%hsp_join_candidates);
+			warn scalar keys(%hsp_join_candidates);
 			foreach my $myref (keys(%hsp_join_candidates)) {
 				my @mynodes = $hsp_join_candidates{$myref}{thisquad}->values;
 				foreach my $otherref (keys(%hsp_join_candidates)) {
