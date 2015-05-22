@@ -628,6 +628,7 @@ sub-plan participating in the join.
 # s?p: 16
 # ?pl: 25
 # ?po: 27
+# ?ao: 29
 # sp?: 30
 # sa?: 32
 # ??l: 33
