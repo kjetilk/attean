@@ -4,7 +4,7 @@ AtteanX::Store::Memory - Simple in-memory RDF store
 
 =head1 VERSION
 
-This document describes AtteanX::Store::Memory version 0.004
+This document describes AtteanX::Store::Memory version 0.005
 
 =head1 SYNOPSIS
 
@@ -19,7 +19,7 @@ AtteanX::Store::Memory provides an in-memory quad-store.
 use v5.14;
 use warnings;
 
-package AtteanX::Store::Memory 0.004 {
+package AtteanX::Store::Memory 0.005 {
 use Moo;
 use Type::Tiny::Role;
 use Types::Standard qw(Int ArrayRef HashRef ConsumerOf InstanceOf);
@@ -455,7 +455,7 @@ sub cost_for_plan {
 	my $self	= shift;
 	my $plan	= shift;
 	if ($plan->isa('Attean::Plan::Quad')) {
-		my @values	= @{ $plan->values };
+		my @values	= $plan->values;
 		my $count	= $self->count_quads(@values);
 		return $count;
 	}

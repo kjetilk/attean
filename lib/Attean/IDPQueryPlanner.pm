@@ -7,7 +7,7 @@ Attean::IDPQueryPlanner - Iterative dynamic programming query planner
 
 =head1 VERSION
 
-This document describes Attean::IDPQueryPlanner version 0.004
+This document describes Attean::IDPQueryPlanner version 0.005
 
 =head1 SYNOPSIS
 
@@ -34,7 +34,7 @@ use Attean::Algebra;
 use Attean::Plan;
 use Attean::Expression;
 
-package Attean::IDPQueryPlanner 0.004 {
+package Attean::IDPQueryPlanner 0.005 {
 	use Moo;
 	use Encode qw(encode);
 	use Attean::RDF qw(iri);
@@ -127,19 +127,25 @@ the supplied C<< $active_graph >>.
 		} elsif ($algebra->isa('Attean::Algebra::Filter')) {
 			# TODO: simple range relation filters can be handled differently if that filter operates on a variable that is part of the ordering
 			my $expr	= $algebra->expression;
+			
 			my $var		= $self->new_temporary('filter');
 			my %exprs	= ($var => $expr);
-			
+		
 			my @plans;
 			foreach my $plan ($self->plans_for_algebra($child, $model, $active_graphs, $default_graphs, @_)) {
 				my $distinct	= $plan->distinct;
 				my $ordered		= $plan->ordered;
-				my @vars		= ($var);
-				my @pvars		= map { Attean::Variable->new($_) } @{ $plan->in_scope_variables };
-				my $extend		= Attean::Plan::Extend->new(children => [$plan], expressions => \%exprs, distinct => 0, in_scope_variables => [@vars, $var], ordered => $ordered);
-				my $filtered	= Attean::Plan::EBVFilter->new(children => [$extend], variable => $var, distinct => 0, in_scope_variables => \@vars, ordered => $ordered);
-				my $proj		= $self->new_projection($filtered, $distinct, @{ $plan->in_scope_variables });
-				push(@plans, $proj);
+				if ($expr->isa('Attean::ValueExpression') and $expr->value->does('Attean::API::Variable')) {
+					my $filtered	= Attean::Plan::EBVFilter->new(children => [$plan], variable => $expr->value->value, distinct => $distinct, in_scope_variables => $plan->in_scope_variables, ordered => $ordered);
+					push(@plans, $filtered);
+				} else {
+					my @vars		= ($var);
+					my @pvars		= map { Attean::Variable->new($_) } @{ $plan->in_scope_variables };
+					my $extend		= Attean::Plan::Extend->new(children => [$plan], expressions => \%exprs, distinct => 0, in_scope_variables => [@vars, $var], ordered => $ordered);
+					my $filtered	= Attean::Plan::EBVFilter->new(children => [$extend], variable => $var, distinct => 0, in_scope_variables => \@vars, ordered => $ordered);
+					my $proj		= $self->new_projection($filtered, $distinct, @{ $plan->in_scope_variables });
+					push(@plans, $proj);
+				}
 			}
 			return @plans;
 		} elsif ($algebra->isa('Attean::Algebra::OrderBy')) {
@@ -239,17 +245,35 @@ the supplied C<< $active_graph >>.
 			}
 			return @plans;
 		} elsif ($algebra->isa('Attean::Algebra::Union')) {
-			# TODO: if both branches are similarly ordered, we can merge the branches and keep the ordering
+			# TODO: if both branches are similarly ordered, we can use Attean::Plan::Merge to keep the resulting plan ordered
 			my @vars		= keys %{ { map { map { $_ => 1 } $_->in_scope_variables } @children } };
 			my @plansets	= map { [$self->plans_for_algebra($_, $model, $active_graphs, $default_graphs, @_)] } @children;
 
 			my @plans;
-			cartesian { push(@plans, Attean::Plan::Union->new(children => \@_, distinct => 0, in_scope_variables => \@vars, ordered => [])) } @plansets;
+			cartesian {
+				push(@plans, Attean::Plan::Union->new(children => \@_, distinct => 0, in_scope_variables => \@vars, ordered => []))
+			} @plansets;
 			return @plans;
 		} elsif ($algebra->isa('Attean::Algebra::Extend')) {
+			my $var			= $algebra->variable->value;
+			my $expr		= $algebra->expression;
+			my %exprs		= ($var => $expr);
+			my @vars		= $algebra->in_scope_variables;
+
+			my @plans;
+			foreach my $plan ($self->plans_for_algebra($child, $model, $active_graphs, $default_graphs, @_)) {
+				my $extend		= Attean::Plan::Extend->new(children => [$plan], expressions => \%exprs, distinct => 0, in_scope_variables => [@vars, $var], ordered => $plan->ordered);
+				push(@plans, $extend);
+			}
+			return @plans;
+		} elsif ($algebra->isa('Attean::Algebra::Ask')) {
+			my @plans;
+			foreach my $plan ($self->plans_for_algebra($child, $model, $active_graphs, $default_graphs, @_)) {
+				return Attean::Plan::Exists->new(children => [$plan], distinct => 1, in_scope_variables => [], ordered => []);
+			}
+			return @plans;
 		} elsif ($algebra->isa('Attean::Algebra::Group')) {
 		} elsif ($algebra->isa('Attean::Algebra::Path')) {
-		} elsif ($algebra->isa('Attean::Algebra::Ask')) {
 		} elsif ($algebra->isa('Attean::Algebra::Construct')) {
 		}
 		die "Unimplemented algebra evaluation for: $algebra";
@@ -295,30 +319,44 @@ triple participating in the join.
 	sub bgp_join_plans {
 		my $self			= shift;
 		my $bgp				= shift;
-		my @plans			= $self->_IDPJoin(@_);
-		my @triples			= @{ $bgp->triples };
+		my $model			= shift;
+		my $active			= shift;
+		my $default			= shift;
+		my $interesting		= shift;
+		my @triples			= @_;
 		
-		# If the BGP does not contain any blanks, then the results are
-		# guaranteed to be distinct. Otherwise, we have to assume they're
-		# not distinct.
-		my $distinct		= 1;
-		LOOP: foreach my $t (@triples) {
-			foreach my $b ($t->values_consuming_role('Attean::API::Blank')) {
-				$distinct	= 0;
-				last LOOP;
-			}
-		}
+		if (scalar(@triples)) {
+			my @plans			= $self->_IDPJoin($model, $active, $default, $interesting, @triples);
+			my @triples			= @{ $bgp->triples };
 		
-		# Set the distinct flag on each of the top-level join plans that
-		# represents the entire BGP. (Sub-plans won't ever be marked as
-		# distinct, but that shouldn't matter to the rest of the planning
-		# process.)
-		if ($distinct) {
-			foreach my $p (@plans) {
-				$p->distinct(1);
+			# If the BGP does not contain any blanks, then the results are
+			# guaranteed to be distinct. Otherwise, we have to assume they're
+			# not distinct.
+			my $distinct		= 1;
+			LOOP: foreach my $t (@triples) {
+				foreach my $b ($t->values_consuming_role('Attean::API::Blank')) {
+					$distinct	= 0;
+					last LOOP;
+				}
 			}
+		
+			# Set the distinct flag on each of the top-level join plans that
+			# represents the entire BGP. (Sub-plans won't ever be marked as
+			# distinct, but that shouldn't matter to the rest of the planning
+			# process.)
+			if ($distinct) {
+				foreach my $p (@plans) {
+					$p->distinct(1);
+				}
+			}
+
+			return @plans;
+		} else {
+			# The empty BGP is a special case -- it results in a single join-identity result
+			my $r		= Attean::Result->new( bindings => {} );
+			my $plan	= Attean::Plan::Table->new( rows => [$r], variables => [], distinct => 1, in_scope_variables => [], ordered => [] );
+			return $plan;
 		}
-		return @plans;
 	}
 	
 =item C<< group_join_plans( $model, \@active_graphs, \@default_graphs, \@interesting_order, \@plansA, \@plansB, ... ) >>
@@ -380,30 +418,46 @@ sub-plan participating in the join.
 			# find the minimum cost plan $p that computes the join over $k elements (the elements end up in @v)
 			my %min_plans;
 			foreach my $w (subsets(\@todo, $k)) {
-				my $w_key	= join('.', sort @$w);
-				my $plans	= $optPlan{$w_key};
-				my %costs	= map { $self->cost_for_plan($_, $model) => [$_, $w] } @$plans;
-				my $min		= min keys %costs;
-				my $min_plan	= $costs{ $min };
-				$min_plans{ $min }	= $min_plan;
+				my $w_key		= join('.', sort @$w);
+				my $plans		= $optPlan{$w_key};
+				my @costs		= map { $self->cost_for_plan($_, $model) => [$_, $w] } @$plans;
+				my %costs		= @costs;
+				my $min			= min keys %costs;
+				my @min_plans;
+				while (my ($cost, $data) = splice(@costs, 0, 2)) {
+					if ($cost == $min) {
+						push(@min_plans, $data);
+					}
+				}
+				$min_plans{ $min }	= \@min_plans;
 			}
 			my $min_cost	= min keys %min_plans;
-			my $min_plan	= $min_plans{$min_cost};
-			my ($p, $v)		= @$min_plan;
-			my $v_key		= join('.', sort @$v);
+			my $min_plans	= $min_plans{$min_cost};
+			my @min_plans;
+			my $min_key;
+			foreach my $d (@$min_plans) {
+				my ($p, $v)		= @$d;
+				my $v_key		= join('.', sort @$v);
+				if (not(defined($min_key)) or $min_key eq $v_key) {
+					push(@min_plans, $p);
+					$min_key	= $v_key;
+				}
+			}
+# 			my ($p, $v)		= @$min_plan;
+# 			my $v_key		= join('.', sort @$v);
 # 			warn "Choosing join for $v_key\n";
 			
 			# generate a new symbol $t to stand in for $p, the join over the elements in @v
 			my $t	= $next_symbol++;
 			
 			# remove elements in @v from the todo list, and replace them by the new composite element $t
-			$optPlan{$t}	= [$p];
-			my %v	= map { $_ => 1 } @$v;
+			$optPlan{$t}	= [@min_plans];
+			my %v	= map { $_ => 1 } split(/[.]/, $min_key);
 			push(@todo, $t);
 			@todo	= grep { not exists $v{$_} } @todo;
 			
 			# also remove subsets of @v from the optPlan hash as they are now covered by $optPlan{$t}
-			foreach my $o (subsets($v)) {
+			foreach my $o (subsets([keys %v])) {
 				my $o_key	= join('.', sort @$o);
 # 				warn "deleting $o_key\n";
 				delete $optPlan{$o_key};
@@ -411,6 +465,8 @@ sub-plan participating in the join.
 		}
 		
 		my $final_key	= join('.', sort @todo);
+# 		use Data::Dumper;
+# 		warn Dumper($optPlan{$final_key});
 		return $self->prune_plans($model, $interesting, $optPlan{$final_key});
 	}
 	
@@ -445,7 +501,16 @@ sub-plan participating in the join.
 		unless ($nodes[3]) {
 			$nodes[3]	= $active_graphs;
 		}
-		my $plan		= Attean::Plan::Quad->new( values => \@nodes, distinct => $distinct, in_scope_variables => \@vars, ordered => [] );
+		my $plan		= Attean::Plan::Quad->new(
+			subject	=> $nodes[0],
+			predicate	=> $nodes[1],
+			object	=> $nodes[2],
+			graph	=> $nodes[3],
+			values => \@nodes,
+			distinct => $distinct,
+			in_scope_variables => \@vars,
+			ordered => [],
+		);
 		return $plan;
 	}
 	
@@ -506,6 +571,7 @@ sub-plan participating in the join.
 				}
 			}
 		}
+		
 		return @plans;
 	}
 	
@@ -569,7 +635,7 @@ sub-plan participating in the join.
 			my $cost	= 1;
 			my @children	= @{ $plan->children };
 			if ($plan->isa('Attean::Plan::Quad')) {
-				my @vars	= map { $_->value } grep { blessed($_) and $_->does('Attean::API::Variable') } @{ $plan->values };
+				my @vars	= map { $_->value } grep { blessed($_) and $_->does('Attean::API::Variable') } $plan->values;
 				return 3 * scalar(@vars);
 			} elsif ($plan->isa('Attean::Plan::NestedLoopJoin')) {
 				my $jv			= $plan->join_variables;
