@@ -594,7 +594,7 @@ sub-plan participating in the join.
 					return $cost;
 				}
 			}
-
+			warn 'Now walking plan with refaddr ' . refaddr($plan);
 			my %hsp_join_candidates;
 			# Implement Heuristic 2 from HSP
 			$plan->walk(prefix => sub {
@@ -608,7 +608,7 @@ sub-plan participating in the join.
 								}
 							});
 #			warn Dumper(\%hsp_join_candidates);
-#			warn scalar keys(%hsp_join_candidates);
+			warn 'Finished walking ' . scalar keys(%hsp_join_candidates) . ' quad patterns';
 			foreach my $myref (keys(%hsp_join_candidates)) {
 				my @mynodes = $hsp_join_candidates{$myref}{thisquad}->values;
 				foreach my $otherref (keys(%hsp_join_candidates)) {
