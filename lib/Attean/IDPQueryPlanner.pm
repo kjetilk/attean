@@ -616,8 +616,8 @@ sub-plan participating in the join.
 					my @othernodes = $hsp_join_candidates{$otherref}{thisquad}->values;
 					for (my $myp = 0; $myp <= 2; $myp++) {
 						for (my $otherp = 0; $otherp <= 2; $otherp++) {
-							my $mynode = $mynodes[0][$myp];
-							my $othernode = $othernodes[0][$otherp];
+							my $mynode = $mynodes[$myp];
+							my $othernode = $othernodes[$otherp];
 							if (blessed($mynode) && $mynode->does('Attean::API::Variable') 
 								 && blessed($othernode) && $othernode->does('Attean::API::Variable') 
 								 && $mynode->equals($othernode)) {
@@ -714,25 +714,24 @@ sub-plan participating in the join.
 
 	sub _hsp_heuristic_triple_sum {
 		my ($self, $t) = @_;
-		my @nodes = $t->values;
 		my $sum = 0;
-		if ($nodes[0][0]->does('Attean::API::Variable')) {
+		if ($t->subject->does('Attean::API::Variable')) {
 			$sum = 20;
 		} else {
 			$sum = 1;
 		}
-		if ($nodes[0][1]->does('Attean::API::Variable')) {
+		if ($t->predicate->does('Attean::API::Variable')) {
 			$sum += 10;
 		} else {
-			if ($nodes[0][1]->equals(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))) {
+			if ($t->predicate->equals(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))) {
 				$sum += 4;
 			} else {
 				$sum += 2;
 			}
 		}
-		if ($nodes[0][2]->does('Attean::API::Variable')) {
+		if ($t->object->does('Attean::API::Variable')) {
 			$sum += 27;
-		} elsif ($nodes[0][2]->does('Attean::API::Literal')) {
+		} elsif ($t->object->does('Attean::API::Literal')) {
 			$sum += 3;
 		} else {
 			$sum += 5;
