@@ -70,6 +70,10 @@ package AtteanX::API::JoinRotatingPlanner {
 			foreach my $p (@plans) {
 				if ($self->allow_join_rotation($p)) {
 					my ($lhs, $rhs)	= @{ $p->children };
+					my @ldfs  = $lhs->subpatterns_of_type('AtteanX::Store::LDF::Plan::Triple');
+					if ((scalar @ldfs == 1)) {# && ($ldfs[0]->subject->value eq 'a')) {
+	#					$DB::single=1;
+					}
 					if ($lhs->does('Attean::API::Plan::Join')) {
 						my ($a, $b)	= @{ $lhs->children };
 						my $c		= $rhs;

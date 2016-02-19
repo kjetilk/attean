@@ -100,6 +100,8 @@ package Attean::API::SimpleCostPlanner 0.011 {
 	use namespace::clean;
 	use Types::Standard qw(Int);
 	use Scalar::Util qw(blessed);
+	use List::Util qw(min);
+
 	with 'Attean::API::CostPlanner';
 	with 'MooX::Log::Any';
 
@@ -136,7 +138,10 @@ package Attean::API::SimpleCostPlanner 0.011 {
 			if ($model->does('Attean::API::CostPlanner')) {
 				if (defined(my $cost = $model->cost_for_plan($plan, $self))) {
 					$plan->cost($cost);
-					$self->log->info('Model \''.ref($model).'\' did cost planning for \''.ref($plan).'\' and got cost '.$cost);
+					if ($self->log->is_info) {
+						$self->log->info('Model \''.ref($model).'\' did cost planning for \''.ref($plan).'\' and got cost '.$cost);
+						$self->log->trace("Cost estimated for plan:\n" . $plan->as_string);
+					}
 					return $cost;
 				}
 			}
@@ -186,7 +191,7 @@ package Attean::API::SimpleCostPlanner 0.011 {
 					$cost	+= $self->cost_for_plan($c, $model);
 				}
 			}
-			
+			$cost = min($cost, 1_000_000_000);
 			$plan->cost($cost);
 			if ($self->log->is_trace) {
 				$self->log->trace("Cost $cost estimated for\n".$plan->as_string);
