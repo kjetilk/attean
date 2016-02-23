@@ -343,7 +343,7 @@ package Attean::API::IDPJoinPlanner 0.011 {
 		my $plan	= shift;
 		my $model	= shift;
 		Carp::confess "No model given" unless ref($model);
-		
+		$self->log->trace("Estimating cost for:\n" . $plan->as_string);
 		if ($plan->has_cost) {
 			return $plan->cost;
 		} else {
