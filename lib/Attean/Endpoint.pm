@@ -383,8 +383,8 @@ END
 # 					die Attean::Endpoint::ClientError->new(code => 400, message => 'Multiple datasets specified for update', uri => 'http://id.kasei.us/rdf-endpoint/error/update_specifies_multiple_datasets');
 # 				}
 
-				if ($self->log->is_trace) {
-					$self->log->trace("Algebra:\n" . $algebra->as_string);
+				if ($self->log->is_warn) {
+					$self->log->warn("Algebra:\n" . $algebra->as_string);
 				}
 				my $graph	= $self->graph;
 				my $default_graphs	= [$graph];
@@ -396,8 +396,8 @@ END
 					}
 				}
 				my $plan	= $planner->plan_for_algebra($algebra, $model, $default_graphs);
-				if ($self->log->is_debug) {
-					$self->log->debug("Plan:\n" . $plan->as_string);
+				if ($self->log->is_warn) {
+					$self->log->warn("Plan:\n" . $plan->as_string);
 				}
 				eval {
 					my $iter	= $plan->evaluate($model);
