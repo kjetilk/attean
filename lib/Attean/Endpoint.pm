@@ -315,6 +315,7 @@ END
 		}
 	
 		if ($sparql) {
+			$self->log->info("Got query:\n$sparql");
 			my %args;
 			$args{ update }		= 1 if ($config->{endpoint}{update} and $req->method eq 'POST');
 			$args{ load_data }	= 1 if ($config->{endpoint}{load_data});
@@ -419,6 +420,7 @@ END
 			$self->log_error( $req, $content );
 			die Attean::Endpoint::ClientError->new(message => 'Missing SPARQL Query/Update String', uri => 'http://id.kasei.us/rdf-endpoint/error/missing_sparql_string');
 		} else {
+			$self->log->info('Showing HTML query form');
 			my $stype		= 'text/html';
 			my $dir			= $ENV{ATTEAN_ENDPOINT_SHAREDIR} || File::Spec->catdir((eval { dist_dir('Attean-Endpoint') } || 'share'), 'endpoint');
 			my $template	= File::Spec->catfile($dir, 'index.html');
