@@ -123,8 +123,13 @@ Evaluates this plan and returns the resulting iterator.
 
 	sub evaluate {
 		my $self	= shift;
+		warn ref($self);
 		my $impl	= $self->impl(@_);
-		return $impl->();
+		warn Data::Dumper::Dumper($impl);
+		my $iter = $impl->();
+		warn "HUH";
+
+		return $iter;
 	}
 
 =item C<< in_scope_variables_union( @plans ) >>

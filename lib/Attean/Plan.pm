@@ -277,7 +277,7 @@ package Attean::Plan::HashJoin 0.013 {
 		my @children	= @_;
 		my $left	= $self->left;
 		my $iter_variables	= $self->in_scope_variables;
-
+		warn "HashJoin check: " . $self->as_string;
 		return sub {
 			my %hash;
 			my @vars	= @{ $self->join_variables };
@@ -1456,10 +1456,15 @@ package Attean::Plan::Project 0.013 {
 	sub impl {
 		my $self	= shift;
 		my $model	= shift;
+#		warn "DAAAAAAAAAAAaHUT: " . $self->as_string;
+		
 		my ($impl)	= map { $_->impl($model) } @{ $self->children };
-		my @vars	= map { $_->value } @{ $self->variables };
-		my $iter_variables	= $self->in_scope_variables;
+#		warn "A";
 
+		my @vars	= map { $_->value } @{ $self->variables };
+#		warn "B";
+		my $iter_variables	= $self->in_scope_variables;
+		warn "Project check";
 		return sub {
 			my $iter	= $impl->();
 			return $iter->map(sub {
@@ -1524,6 +1529,7 @@ package Attean::Plan::OrderBy 0.013 {
 	sub impl {
 		my $self	= shift;
 		my $model	= shift;
+		warn "OrderBy check";
 		my $vars	= $self->variables;
 		my $ascending	= $self->ascending;
 		my ($impl)	= map { $_->impl($model) } @{ $self->children };
