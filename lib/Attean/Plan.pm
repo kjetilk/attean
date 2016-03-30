@@ -1663,12 +1663,12 @@ package Attean::Plan::Iterator 0.013 {
 	sub BUILDARGS {
 		my $class		= shift;
 		my %args		= @_;
-		my $vars		= $args{iterator}->variables;
+		my @vars		= map { $_->value } @{$args{variables}};
 		
 		if (exists $args{in_scope_variables}) {
 			Carp::confess "in_scope_variables is computed automatically, and must not be specified in the $class constructor";
 		}
-		$args{in_scope_variables}	= $vars;
+		$args{in_scope_variables}	= \@vars;
 
 		return $class->SUPER::BUILDARGS(%args);
 	}
