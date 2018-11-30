@@ -48,6 +48,11 @@ package Attean {
 	use Attean::Literal;
 	use Attean::Variable;
 	use Attean::IRI;
+
+	use constant A => Attean::IRI->new('http://www.w3.org/1999/02/22-rdf-syntax-ns#type');
+	
+	our @ISA	= qw(Exporter);
+	our @EXPORT	= qw(A);
 	
 	use Attean::Triple;
 	use Attean::Quad;

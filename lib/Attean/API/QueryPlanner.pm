@@ -470,7 +470,7 @@ package Attean::API::IDPJoinPlanner 0.017 {
 		if ($t->predicate->does('Attean::API::Variable')) {
 			$sum += 10;
 		} else {
-			if ($t->predicate->equals(iri('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))) {
+			if ($t->predicate->equals(Attean::A)) {
 				$sum += 4;
 			} else {
 				$sum += 2;
