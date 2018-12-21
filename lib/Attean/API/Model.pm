@@ -241,6 +241,26 @@ package Attean::API::Model 0.019 {
 		my %seen;
 		return $union->grep(sub {not($seen{shift->as_string}++)});
 	}
+
+
+	sub holds {
+	  my $self = shift;
+	  my @patterns = @_;
+	  my $firstarg = $patterns[0];
+	  if ((!defined($firstarg) || (blessed($firstarg) && $firstarg->does('Attean::API::TermOrVariable')))) {
+		 # We have a normal single pattern call
+		 # TODO: call the stores' holds
+	  } elsif (blessed($firstarg) && $firstarg->does('Attean::API::Algebra')) {
+		 my $algebra = $firstarg;
+		 unless ($firstarg->isa('Attean::Algebra::Ask')) {
+			# TODO: build the query up to an ASK
+			$algebra = Attean::Algebra::Ask->new(children => [$firstarg]);
+		 }
+		 # TODO: Run the query based on the algebra
+	  } else {
+		 Carp::confess 'Unknown argument of type ' . ref($firstarg);
+	  }
+	}
 }
 
 
