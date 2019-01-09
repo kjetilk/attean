@@ -105,15 +105,6 @@ package Attean::TripleModel 0.020 {
 		}
 	}
 	
-=item C<< holds >>
-
-=cut
-
-	sub holds {
-		my $self	= shift;
-		return ($self->count_quads_estimate(@_) > 0)
-	}
-	
 =item C<< get_graphs >>
 
 =cut

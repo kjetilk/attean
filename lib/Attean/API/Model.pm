@@ -128,7 +128,7 @@ package Attean::API::Model 0.020 {
 	use URI::Namespace;
 	use Scalar::Util qw(blessed);
 	use List::MoreUtils qw(uniq);
-
+	use List::Util qw(any);
 	use Moo::Role;
 	
 	# get_quads($s, $p, $o, $g)
@@ -249,7 +249,13 @@ package Attean::API::Model 0.020 {
 	  my $firstarg = $patterns[0];
 	  if ((!defined($firstarg) || (blessed($firstarg) && $firstarg->does('Attean::API::TermOrVariable')))) {
 		 # We have a normal single pattern call
-		 # TODO: call the stores' holds
+		 if ($self->isa('Attean::QuadModel')) {
+			return $self->store->holds(@patterns);
+		 } elsif ($self->isa('Attean::TripleModel')) {
+			return any { $_->holds(@patterns) } @{$self->stores};
+		 } else {
+			Carp::confess 'Unknown model of type ' . ref($self);
+		 }
 	  } elsif (blessed($firstarg) && $firstarg->does('Attean::API::Algebra')) {
 		 my $algebra = $firstarg;
 		 if ($algebra->isa('Attean::Algebra::BGP')) {
