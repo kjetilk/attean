@@ -252,10 +252,20 @@ package Attean::API::Model 0.020 {
 		 # TODO: call the stores' holds
 	  } elsif (blessed($firstarg) && $firstarg->does('Attean::API::Algebra')) {
 		 my $algebra = $firstarg;
-		 unless ($firstarg->isa('Attean::Algebra::Ask')) {
-			# TODO: build the query up to an ASK
-			$algebra = Attean::Algebra::Ask->new(children => [$firstarg]);
+		 if ($algebra->isa('Attean::Algebra::BGP')) {
+			$algebra = Attean::Algebra::Ask->new(children => [$algebra]);
 		 }
+		 if ($algebra->isa('Attean::Algebra::Ask')) {
+			$algebra = Attean::Algebra::Query->new(children => [$algebra]);
+		 }
+		 if ($algebra->isa('Attean::Algebra::Query')) {
+			#unless ($algebra->children->[0]->isa('Attean::Algebra::Ask')) { TODO something like this
+			#		  Carp::confess 'Query must an ASK query';
+			#}
+		 } else {
+			Carp::confess 'Algebra of type ' . ref($firstarg) . ' is not supported yet';
+		 }
+#		 return $algebra;
 		 # TODO: Run the query based on the algebra
 	  } else {
 		 Carp::confess 'Unknown argument of type ' . ref($firstarg);
