@@ -265,9 +265,9 @@ package Attean::API::Model 0.020 {
 			$algebra = Attean::Algebra::Query->new(children => [$algebra]);
 		 }
 		 if ($algebra->isa('Attean::Algebra::Query')) {
-			#unless ($algebra->children->[0]->isa('Attean::Algebra::Ask')) { TODO something like this
-			#		  Carp::confess 'Query must an ASK query';
-			#}
+			unless ($algebra->children->[0]->isa('Attean::Algebra::Ask')) {
+			  Carp::confess 'Query must an ASK query';
+			}
 		 } else {
 			Carp::confess 'Algebra of type ' . ref($firstarg) . ' is not supported yet';
 		 }
