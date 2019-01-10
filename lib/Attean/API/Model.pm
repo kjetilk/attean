@@ -130,7 +130,8 @@ package Attean::API::Model 0.020 {
 	use List::MoreUtils qw(uniq);
 	use List::Util qw(any);
 	use Moo::Role;
-	
+	use Attean::SimpleQueryEvaluator;
+
 	# get_quads($s, $p, $o, $g)
 	# or:
 	# get_quads([$s1, $s2, ...], \@p, \@o, \@g)
@@ -247,6 +248,7 @@ package Attean::API::Model 0.020 {
 	  my $self = shift;
 	  my @patterns = @_;
 	  my $firstarg = $patterns[0];
+	  my ($active_graph, $default_graph); # TODO: Must be set
 	  if ((!defined($firstarg) || (blessed($firstarg) && $firstarg->does('Attean::API::TermOrVariable')))) {
 		 # We have a normal single pattern call
 		 if ($self->isa('Attean::QuadModel')) {
@@ -266,13 +268,14 @@ package Attean::API::Model 0.020 {
 		 }
 		 if ($algebra->isa('Attean::Algebra::Query')) {
 			unless ($algebra->children->[0]->isa('Attean::Algebra::Ask')) {
-			  Carp::confess 'Query must an ASK query';
+			  Carp::confess 'Query must be an ASK query';
 			}
 		 } else {
 			Carp::confess 'Algebra of type ' . ref($firstarg) . ' is not supported yet';
 		 }
-#		 return $algebra;
-		 # TODO: Run the query based on the algebra
+		 my $e = Attean::SimpleQueryEvaluator->new( model => $self, default_graph => $default_graph );
+		 my $iter = $e->evaluate( $algebra, $active_graph );
+		 return $iter->next->ebv;
 	  } else {
 		 Carp::confess 'Unknown argument of type ' . ref($firstarg);
 	  }
