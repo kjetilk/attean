@@ -254,7 +254,7 @@ package Attean::API::Model 0.020 {
 		 if ($self->isa('Attean::QuadModel')) {
 			return $self->store->holds(@patterns);
 		 } elsif ($self->isa('Attean::TripleModel')) {
-			return any { $_->holds(@patterns) } @{$self->stores};
+			return any { $_->holds(@patterns) } @{$self->stores}; # TODO: iterate graphs
 		 } else {
 			Carp::confess 'Unknown model of type ' . ref($self);
 		 }
@@ -271,7 +271,7 @@ package Attean::API::Model 0.020 {
 			  Carp::confess 'Query must be an ASK query';
 			}
 		 } else {
-			Carp::confess 'Algebra of type ' . ref($firstarg) . ' is not supported yet';
+			die 'Algebra of type ' . ref($firstarg) . ' is not supported yet';
 		 }
 		 my $e = Attean::SimpleQueryEvaluator->new( model => $self, default_graph => $default_graph );
 		 my $iter = $e->evaluate( $algebra, $active_graph );
